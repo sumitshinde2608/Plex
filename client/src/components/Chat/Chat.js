@@ -1,126 +1,124 @@
 import React, { useState, useEffect, useRef } from "react";
-import queryString from 'query-string';
+import queryString from "query-string";
 import io from "socket.io-client";
 
-import TextContainer from '../TextContainer/TextContainer';
-import Messages from '../Messages/Messages';
-import InfoBar from '../InfoBar/InfoBar';
-import Input from '../Input/Input';
-import Video from '../Video/Video';
+import TextContainer from "../TextContainer/TextContainer";
+import Messages from "../Messages/Messages";
+import InfoBar from "../InfoBar/InfoBar";
+import Input from "../Input/Input";
+import Video from "../Video/Video";
 
-import './Chat.css';
+import "./Chat.css";
 
-const ENDPOINT = 'localhost:5000';
+const ENDPOINT = "localhost:5000";
 
 let socket;
 
-// const time = useRef(0);
-
 const Chat = ({ location }) => {
+  const { name, room, URL } = queryString.parse(location.search);
 
-  const { name, room ,URL} = queryString.parse(location.search);
-
-  // const [name, setName] = useState('');
-  // const [room, setRoom] = useState('');
-  const [users, setUsers] = useState('');
+  const [users, setUsers] = useState("");
   const [firstTime, setFirstTime] = useState(true);
-  const [message, setMessage] = useState('');
+  const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
-  
+
   const playerRef = useRef(0);
-  const [playerData, SetPlayerData] = useState({url:URL,playing:false,time:0, seeking: false});
+  const [playerData, SetPlayerData] = useState({
+    url: URL,
+    playing: false,
+    time: 0,
+    seeking: false,
+  });
 
   useEffect(() => {
-
     socket = io(ENDPOINT);
 
-    // setRoom(room);
-    // setName(name);
-    // setURL(URL);
-
-    socket.emit('join', { name, room, URL }, (error) => {
-      if(error) {
+    socket.emit("join", { name, room, URL }, (error) => {
+      if (error) {
         alert(error);
       }
     });
   }, [ENDPOINT, location.search]);
-  
 
   useEffect(() => {
-    socket.on('message', message => {
-      setMessages(messages => [ ...messages, message ]);
+    socket.on("message", (message) => {
+      setMessages((messages) => [...messages, message]);
     });
-    
+
     socket.on("roomData", ({ users }) => {
       setUsers(users);
     });
-}, []);
+  }, []);
 
   const sendMessage = (event) => {
     event.preventDefault();
 
-    if(message) {
-      socket.emit('sendMessage', message, () => setMessage(''));
+    if (message) {
+      socket.emit("sendMessage", message, () => setMessage(""));
     }
-  }
+  };
 
-useEffect(()=>{
-  socket.on("requestPlayerInfo",()=> {
-    // console.log("Ftr");
-    socket.emit('sendPlayerState',{url:playerRef.current.props.url,
-      time:playerRef.current.getCurrentTime(),
-      playing:playerRef.current.props.playing},
-      (response)=>{
-        console.log(response)
-    })
-    console.log(playerRef.current.getCurrentTime(),)
-  })
-},[]);
+  useEffect(() => {
+    socket.on("requestPlayerInfo", () => {
+      // console.log("Ftr");
+      socket.emit(
+        "sendPlayerState",
+        {
+          url: playerRef.current.props.url,
+          time: playerRef.current.getCurrentTime(),
+          playing: playerRef.current.props.playing,
+        },
+        (response) => {
+          console.log(response);
+        }
+      );
+      console.log(playerRef.current.getCurrentTime());
+    });
+  }, []);
 
-let trys = '';
-useEffect(()=>{
-  socket.on('getPlayerInfo',(playerInfo)=>{
-    console.log(playerInfo)
-  
-    SetPlayerData({...playerInfo, seeking: true});
-    })
-},[])
+  let trys = "";
+  useEffect(() => {
+    socket.on("getPlayerInfo", (playerInfo) => {
+      console.log(playerInfo);
 
-useEffect(()=>{
-  socket.on('getPlayPause', (playerInfo)=>{
-    SetPlayerData({...playerInfo, seeking: true})
-  })
-})
+      SetPlayerData({ ...playerInfo, seeking: true });
+    });
+  }, []);
 
-useEffect(()=>{
-  console.log(playerData);
-  if(firstTime){
-  setFirstTime(false)
-    return;
-  }
-  if(playerData.seeking) return;
-  socket.emit('sendPlayerState', playerData, response=>{})
-},[playerData.playing])
+  useEffect(() => {
+    socket.on("getPlayPause", (playerInfo) => {
+      SetPlayerData({ ...playerInfo, seeking: true });
+    });
+  });
 
-
-  // const Videosync =( ) => {
-  //   seek.current.seekTo(PlayerState,'seconds');
-  // }
+  useEffect(() => {
+    console.log(playerData);
+    if (firstTime) {
+      setFirstTime(false);
+      return;
+    }
+    if (playerData.seeking) return;
+    socket.emit("sendPlayerState", playerData, (response) => {});
+  }, [playerData.playing]);
 
   return (
     <div className="outerContainer">
-      <Video playerRef={playerRef} playerInfo={playerData} setPlayerInfo = {SetPlayerData}/>
+      <Video
+        playerRef={playerRef}
+        playerInfo={playerData}
+        setPlayerInfo={SetPlayerData}
+      />
       <div className="container">
-          <InfoBar room={room} />
-          <Messages messages={messages} name={name} />
-          <Input message={message} setMessage={setMessage} sendMessage={sendMessage} />
+        <InfoBar room={room} />
+        <Messages messages={messages} name={name} />
+        <Input
+          message={message}
+          setMessage={setMessage}
+          sendMessage={sendMessage}
+        />
       </div>
-      {/* <TextContainer users={users}/> */}
-      {/* <button onClick= {()=> console.log(playerData)}>Click Chat.js</button> */}
- 
-      
     </div>
   );
-}
+};
 
 export default Chat;
